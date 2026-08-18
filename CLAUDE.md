@@ -42,9 +42,18 @@ Single-file RAG pipeline in `starter/rag_starter.py`. Five functions in sequence
 
 `main()` wires these together and runs one hard-coded test question.
 
+## Coding Rules
+
+These rules apply whenever editing `sandbox/RAG.ipynb` or `starter/rag_starter.py`:
+
+- **Prompt injection isolation** — the user-turn message in `answer()` wraps both untrusted inputs in XML tags: `<context>…</context>` for retrieved chunks and `<question>…</question>` for the employee question. Preserve this structure; do not collapse them into plain f-string interpolation.
+- **Embedding model loading** — always use `_load_model(model_name)` instead of `SentenceTransformer(model_name)` directly. The helper tries `local_files_only=True` first (reads from cache, no network) and falls back to a download only on a cache miss. This keeps the notebook usable offline once models are cached.
+- **API call error handling** — `client.messages.create()` calls must be wrapped in a retry loop that catches `anthropic.APIConnectionError` and `anthropic.RateLimitError` with exponential backoff. After the retry loop, validate `response.content[0].type == "tool_use"` before indexing — do not access `.input` blindly.
+- **Batch resilience** — the Step 6 batch loop must catch per-question exceptions and record an error entry rather than aborting the entire run.
+
 ## Critical Data Constraints
 
-Nine constraint types that any policy dataset may contain. The `answer()` function tags each response with the applicable types (see `metadata.constraints` in the JSON response schema). When adding new policies, annotate them with the types they introduce.
+Ten constraint types that any policy dataset may contain. The `answer()` function tags each response with the applicable types (see `metadata.constraints` in the JSON response schema). When adding new policies, annotate them with the types they introduce.
 
 | Constraint tag | Pattern | Current handbook example |
 |---|---|---|
@@ -57,10 +66,11 @@ Nine constraint types that any policy dataset may contain. The `answer()` functi
 | `partial_coverage` | Handbook mentions the topic but omits a key detail. Distinct from `unanswerable_question` (where the topic itself is absent). | POL-017: first bereavement request needs no documentation; subsequent requests are unaddressed. |
 | `calculation_required` | Correct answer requires arithmetic over policy numbers (pro-rating, offsets, tier selection). Data is present but the answer is a computation. | POL-019: pro-rated relocation repayment (1/12 per completed month). POL-018: jury duty pay is the shortfall vs. court stipend. POL-008: three PTO tiers by tenure. |
 | `external_reference` | Policy references external law/system not defined in the handbook. Answer only from policy text; decline on the external-law specifics. | POL-010: parental leave "runs concurrently with FMLA" — FMLA terms are outside the handbook. |
+| `other` | Constraint present in the data that does not fit any of the nine defined tags. Use as an escape valve when a new dataset introduces a pattern not yet classified. | — |
 
 ## Tech Stack
 
 - Language: Python 3
-- Embedding: OpenAI, sentence-transformers, or local (choice left to implementer — document it)
-- LLM: Claude (`anthropic` SDK)
-- Vector store: in-memory numpy, FAISS, or Chroma (all acceptable)
+- Embedding: `all-MiniLM-L6-v2` via `sentence-transformers` (384-dim, ~80 MB, CPU, local — no API key required). Load via `_load_model()` helper; never call `SentenceTransformer()` directly.
+- LLM: Claude via `anthropic` SDK, routed through the Portkey gateway at `https://portkeygateway.perficient.com`
+- Vector store: in-memory numpy cosine similarity (k=3 default)
