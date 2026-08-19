@@ -53,20 +53,15 @@ These rules apply whenever editing `sandbox/RAG.ipynb` or `starter/rag_starter.p
 
 ## Critical Data Constraints
 
-Ten constraint types that any policy dataset may contain. The `answer()` function tags each response with the applicable types (see `metadata.constraints` in the JSON response schema). When adding new policies, annotate them with the types they introduce.
+Five constraint types that any policy dataset may contain. The `answer()` function tags each response with the applicable types (see `metadata.constraints` in the JSON response schema). When adding new policies, annotate them with the types they introduce.
 
 | Constraint tag | Pattern | Current handbook example |
 |---|---|---|
-| `version_conflict` | A newer policy supersedes terms in an older one, with a future effective date. Both are retrieved; answer must surface both and state which applies when. | POL-015 supersedes match/vesting in POL-007, effective 2026-01-01. POL-007 terms are current until then. |
-| `internal_contradiction` | A single policy contains logically inconsistent statements. | POL-016: eligible after 5 years continuous FT service, but approval requires 7 years. |
-| `unanswerable_question` | The topic is genuinely absent from the handbook. Must decline rather than extrapolate. | Q13: PTO accrual rate during parental leave — not mentioned in POL-008 or POL-010. |
-| `compound_eligibility` | Correct answer requires combining 2+ policies — either to build a complete answer or because one policy prohibits a benefit granted by another. | POL-006 bars Healthcare FSA + HSA in the same year; both POL-005 and POL-006 must be retrieved. |
-| `scope_exclusion` | A policy explicitly restricts or excludes a class of person (employment type, enrollment state). Answering without applying the scope gate is incorrect. | POL-001 gates all benefits by employment class; POL-005 restricts HSA to HDHP enrollees; POL-011 excludes on-site-only employees. |
-| `temporal_ambiguity` | Answer depends on a specific date — a future effective date or an event-anchored deadline. | POL-002: QLE changes must be submitted within 30 days. POL-019: repayment applies if employee leaves within 12 months. |
-| `partial_coverage` | Handbook mentions the topic but omits a key detail. Distinct from `unanswerable_question` (where the topic itself is absent). | POL-017: first bereavement request needs no documentation; subsequent requests are unaddressed. |
-| `calculation_required` | Correct answer requires arithmetic over policy numbers (pro-rating, offsets, tier selection). Data is present but the answer is a computation. | POL-019: pro-rated relocation repayment (1/12 per completed month). POL-018: jury duty pay is the shortfall vs. court stipend. POL-008: three PTO tiers by tenure. |
-| `external_reference` | Policy references external law/system not defined in the handbook. Answer only from policy text; decline on the external-law specifics. | POL-010: parental leave "runs concurrently with FMLA" — FMLA terms are outside the handbook. |
-| `other` | Constraint present in the data that does not fit any of the nine defined tags. Use as an escape valve when a new dataset introduces a pattern not yet classified. | — |
+| `conflict` | Two policies disagree (newer supersedes older with effective date) or a single policy contradicts itself. State both positions; never silently choose one side. | POL-015 supersedes match/vesting in POL-007, effective 2026-01-01. POL-016: eligible after 5 years continuous FT service, but approval requires 7 years. |
+| `incomplete` | Handbook coverage fails — topic entirely absent (pair with `answer_type='declined'`) or a policy defines one scenario while another foreseeable scenario is unaddressed, even if the other scenario is never explicitly named. Tag when the defined case is present in the retrieved text; the defined case IS the trigger. | Q13: PTO accrual during parental leave absent — tag `incomplete` + `declined`. POL-017: states no documentation for first request; subsequent requests undefined — tag `incomplete` even when answering the defined (first-request) case (Q14). |
+| `compound_eligibility` | Answer requires combining 2+ policies (mandatory, not merely co-retrieved), or a policy gates the benefit by employment type or enrollment state. | POL-006 bars Healthcare FSA + HSA in the same year; both POL-005 and POL-006 must be retrieved. POL-001 gates all benefits by employment class. POL-011 excludes on-site-only employees from remote stipend. |
+| `derived` | Answer requires processing beyond direct text lookup: a date calculation or event-anchored deadline, arithmetic over policy numbers (pro-rating, offsets, tier selection), or the policy cites external law/system not in the handbook. | POL-002: QLE changes must be submitted within 30 days. POL-019: pro-rated relocation repayment (1/12 per completed month). POL-010: parental leave "runs concurrently with FMLA." |
+| `other` | Constraint present that does not fit any of the four defined tags. Use as escape valve when a new dataset introduces a pattern not yet classified. | — |
 
 ## Tech Stack
 
