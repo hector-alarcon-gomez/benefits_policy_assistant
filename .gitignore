@@ -1,3 +1,4 @@
 benefits_policy_assistant.code-workspace
 example
 .env 
+starter/__pycache__/*

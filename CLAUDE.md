@@ -11,23 +11,8 @@ The handbook header pins edition date **1 October 2025** — treat that as "toda
 ## Common Commands
 
 ```bash
-# Install dependencies (once requirements.txt exists)
-pip install -r requirements.txt
-
-# Run the pipeline
+# Run the pipeline (single hardcoded question in main())
 python starter/rag_starter.py
-
-# Run against all 15 sample questions (once a batch runner exists)
-python starter/rag_starter.py --eval
-
-# Run tests
-pytest
-
-# Run a single test
-pytest tests/test_foo.py::test_bar
-
-# Lint
-ruff check .
 ```
 
 ## Architecture
