@@ -16,13 +16,12 @@ Evaluated against `data/sample_questions.csv` (15 questions) — current score *
 
 ## Demo
 
-<video src="deliverables/demo_rag_notebook.mp4" controls width="100%">
-  <a href="deliverables/demo_rag_notebook.mp4">Download demo (MP4)</a>
-</video>
+Download **[deliverables/demo_rag.zip](deliverables/demo_rag.zip)**, extract it, and open the videos in any media player:
 
-> If the video does not render in your viewer, open `deliverables/demo_rag_notebook.mp4` directly
-> or follow the steps below to reproduce it.
-
+| File | What it shows |
+|------|---------------|
+| `demo_rag_notebook.mp4` | Full 7-step pipeline walkthrough in `sandbox/RAG.ipynb` — chunking, benchmarks, `answer()` call, batch run, Step 7 assertions (15/15) |
+| `demo_rag_python.mp4` | CLI pipeline run via `starter/rag_starter.py` — single question end-to-end |
 
 ## Architecture
 
@@ -50,7 +49,8 @@ benefits_policy_assistant/
 │   ├── prompt.py              # SYSTEM_PROMPT with grounding rules
 │   └── tool.py                # ANSWER_TOOL forced-tool-use schema
 └── deliverables/
-    ├── design_note.md     # Design note: chunking, retrieval, failure modes
+    ├── demo_rag.zip           # Demo videos (demo_rag_notebook.mp4, demo_rag_python.mp4)
+    ├── design_note.md         # Design note: chunking, retrieval, failure modes
     └── effort.md              # Declared effort and token usage statement
 ```
 
@@ -230,3 +230,11 @@ All three metrics (cosine, dot product, euclidean) tie at k=3. Cosine was select
 - **Grid search** — test chunk strategy × embedding model × retrieval metric combinations using `RECALL_GT` as the signal; confirm the per-stage winners are also the global optimum.
 - **Tuning guidance**: increase `k` to 4–5 if compound questions start missing the second policy; adjust `MAX_QUESTION_LEN` if legitimate questions exceed 500 characters; switch to paragraph+header chunking when individual policies grow beyond ~300 tokens.
 
+
+## Deliverables
+
+| File | Description |
+|------|-------------|
+| [deliverables/demo_rag.zip](deliverables/demo_rag.zip) | Demo videos: `demo_rag_notebook.mp4` (full notebook walkthrough) and `demo_rag_python.mp4` (CLI run) |
+| [deliverables/design_note.md](deliverables/design_note.md) | One-page design note covering chunking strategy, embedding selection, retrieval tuning, grounding approach, and failure modes found |
+| [deliverables/effort.md](deliverables/effort.md) | Declared-effort statement: ~11 hours across 2 sessions, token usage estimates, what was implemented and what was cut |
