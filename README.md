@@ -14,6 +14,16 @@ RAG pipeline over `data/benefits_policies.md`, a synthetic HR handbook for **Mer
 
 Evaluated against `data/sample_questions.csv` (15 questions) — current score **15/15**.
 
+## Demo
+
+<video src="deliverables/demo_rag_notebook.mp4" controls width="100%">
+  <a href="deliverables/demo_rag_notebook.mp4">Download demo (MP4)</a>
+</video>
+
+> If the video does not render in your viewer, open `deliverables/demo_rag_notebook.mp4` directly
+> or follow the steps below to reproduce it.
+
+
 ## Architecture
 
 Five-function pipeline:
@@ -40,7 +50,7 @@ benefits_policy_assistant/
 │   ├── prompt.py              # SYSTEM_PROMPT with grounding rules
 │   └── tool.py                # ANSWER_TOOL forced-tool-use schema
 └── deliverables/
-    ├── one_page_design.md     # Design note: chunking, retrieval, failure modes
+    ├── design_note.md     # Design note: chunking, retrieval, failure modes
     └── effort.md              # Declared effort and token usage statement
 ```
 
@@ -131,6 +141,34 @@ All LLM calls route through the Portkey gateway to `claude-sonnet-4-6`. Embeddin
 - **Policy-boundary chunking** — each chunk averages ~79 tokens (max ~138). Sliding-window or finer-grained strategies produce more or longer chunks that inflate the retrieved context block.
 - **k=3 minimum** — k=3 is the smallest value that achieves 100% recall on all compound questions. Raising to k=4 or k=5 adds ~79 tokens per call with no improvement on the current corpus.
 
+## Response Schema
+
+`answer()` returns a structured dict via forced tool use:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `answer` | string | Grounded response citing POL-NNN IDs |
+| `answer_type` | enum | `answered` \| `declined` \| `partial` |
+| `policies` | string[] | Policy IDs cited (e.g. `["POL-003", "POL-005"]`) |
+| `constraints` | string[] | Constraint tags present in this answer |
+| `confidence` | string | `high` \| `medium` \| `low` |
+| `retrieval_sufficient` | bool | Whether retrieved context was enough to answer |
+
+**Example output** (Q02 — "How much does the company match on my 401k and when does it vest?"):
+
+```json
+{
+  "answer": "The answer depends on the time period, as the match terms change on January 1, 2026:\n\n**Now (before January 1, 2026) — per POL-007:**\n- **Match:** 100% of your first 3% of eligible pay, plus 50% of the next 2% → maximum employer match of 4%\n- **Vesting:** Graded over three years — one-third vests per year (fully vested after 3 years)\n\n**Starting January 1, 2026 — per POL-015 (supersedes POL-007 match/vesting terms):**\n- **Match:** 100% of your first 4% of eligible pay → maximum employer match of 4%\n- **Vesting:** Immediate — match is fully vested as soon as it is credited\n\nIn both periods, your auto-enrollment default (4%) and your choice between pre-tax or Roth contributions remain unchanged (POL-007).",
+  "metadata": {
+    "answer_type": "answered",
+    "policies": ["POL-007", "POL-015"],
+    "constraints": ["conflict"],
+    "confidence": "high",
+    "retrieval_sufficient": true
+  }
+}
+```
+
 
 ## Benchmarks
 
@@ -172,34 +210,6 @@ All three metrics (cosine, dot product, euclidean) tie at k=3. Cosine was select
 
 **k=3 is the minimum that recovers all compound questions.** Raising to 4–5 adds ~79 tokens per call with no recall gain on the current corpus.
 
-## Response Schema
-
-`answer()` returns a structured dict via forced tool use:
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `answer` | string | Grounded response citing POL-NNN IDs |
-| `answer_type` | enum | `answered` \| `declined` \| `partial` |
-| `policies` | string[] | Policy IDs cited (e.g. `["POL-003", "POL-005"]`) |
-| `constraints` | string[] | Constraint tags present in this answer |
-| `confidence` | string | `high` \| `medium` \| `low` |
-| `retrieval_sufficient` | bool | Whether retrieved context was enough to answer |
-
-**Example output** (Q02 — "How much does the company match on my 401k and when does it vest?"):
-
-```json
-{
-  "answer": "The answer depends on the time period, as the match terms change on January 1, 2026:\n\n**Now (before January 1, 2026) — per POL-007:**\n- **Match:** 100% of your first 3% of eligible pay, plus 50% of the next 2% → maximum employer match of 4%\n- **Vesting:** Graded over three years — one-third vests per year (fully vested after 3 years)\n\n**Starting January 1, 2026 — per POL-015 (supersedes POL-007 match/vesting terms):**\n- **Match:** 100% of your first 4% of eligible pay → maximum employer match of 4%\n- **Vesting:** Immediate — match is fully vested as soon as it is credited\n\nIn both periods, your auto-enrollment default (4%) and your choice between pre-tax or Roth contributions remain unchanged (POL-007).",
-  "metadata": {
-    "answer_type": "answered",
-    "policies": ["POL-007", "POL-015"],
-    "constraints": ["conflict"],
-    "confidence": "high",
-    "retrieval_sufficient": true
-  }
-}
-```
-
 ## Notes & Next Steps
 
 ### Hardening applied
@@ -219,7 +229,4 @@ All three metrics (cosine, dot product, euclidean) tie at k=3. Cosine was select
 - **Database retrieval** — retrieve employee contract and role from an external store to gate benefit eligibility dynamically.
 - **Grid search** — test chunk strategy × embedding model × retrieval metric combinations using `RECALL_GT` as the signal; confirm the per-stage winners are also the global optimum.
 - **Tuning guidance**: increase `k` to 4–5 if compound questions start missing the second policy; adjust `MAX_QUESTION_LEN` if legitimate questions exceed 500 characters; switch to paragraph+header chunking when individual policies grow beyond ~300 tokens.
-
-### When ready
-Port the five functions (`load_documents`, `chunk`, `embed`, `retrieve`, `answer`) to `starter/rag_starter.py`. The coding rules in `CLAUDE.md` (XML tag isolation, `_load_model()`, retry loop, batch resilience) apply there too.
 
